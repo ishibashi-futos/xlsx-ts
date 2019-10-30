@@ -29,4 +29,7 @@ const mkdir = (dirName: string): boolean => {
 /** .を/に変換する */
 const replaceAll = (inputStr: string, regex: RegExp = /\./g, replaceValue: string = "/") => inputStr.replace(regex, replaceValue)
 
-export {isExistsFile, Snake2Camel, mkdir, replaceAll}
+/** Javaの組み込み型 */
+const JavaPrimitive = ["String", "int", "long", "short", "double", "float", "boolean", "byte", "null"]
+
+export {isExistsFile, Snake2Camel, mkdir, replaceAll, JavaPrimitive}
