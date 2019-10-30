@@ -1,20 +1,12 @@
 import {utils} from "xlsx";
 import XLSX from "xlsx"
 import fs from "fs";
+import {isExistsFile, Snake2Camel, mkdir, replaceAll} from "./util"
 
 const fileName = "./assets/test.xlsx"
 const sheetNames = [
   "sheet1"
 ]
-
-let isExistsFile = (fileName: string) => {
-  try {
-    fs.statSync(fileName)
-    return true;
-  } catch (err) {
-    return false
-  }
-}
 
 if (!isExistsFile(fileName)) {
   let wb = XLSX.utils.book_new();
@@ -51,9 +43,6 @@ const sheet1 = book.Sheets[sheetNames[0]];
 /** セル範囲の取得 */
 const range = sheet1["!ref"] as string
 const decodeRange = utils.decode_range(range)
-
-/** スネークケースをキャメルケースにする */
-const Snake2Camel = (str: string): string => str.replace(/_./g, (s) => s.charAt(1).toUpperCase())
 
 /** セル範囲のループ処理 */
 type DataType = {
@@ -108,6 +97,9 @@ for (let rowIndex = decodeRange.s.r; rowIndex <= decodeRange.e.r; rowIndex++) {
     dataTypes!.push(data);
   }
 }
+const PKG_BASE = "com.example.samplewebapp"
+const SUBSYSTEM_ID = "app"
+const PROGRAM_ID = "test1"
 
 classData.forEach((v: DataType[], key: string) => {
   if (key == "") return
@@ -115,18 +107,25 @@ classData.forEach((v: DataType[], key: string) => {
     return `\tpublic final ${v.javaType} ${v.varName};`
   }).join("\n")
 
-  const allArgs = v.map((v) => `${v.javaType} ${v.varName}`).join(" ,")
+  const allArgs = v.map((v) => `${v.javaType} ${v.varName}`).join(", ")
   const set = v.map((v) => {
-    return `\tthis.${v.varName} = ${v.varName}`
+    return `\t\tthis.${v.varName} = ${v.varName};`
   }).join("\n")
 
-  console.log(`
+  const fileData = `package ${PKG_BASE}.${SUBSYSTEM_ID}.${PROGRAM_ID};
+
 public class ${key} {
 ${members}
 
-\tpublic ${key} (${allArgs}) {
+\tpublic ${key}(${allArgs}) {
 ${set}
 \t}
-}
-  `)
+}`
+  const dirName = `./target/${replaceAll(PKG_BASE)}/${SUBSYSTEM_ID}/${PROGRAM_ID}`
+  mkdir(dirName);
+  fs.writeFile(`${dirName}/${key}.java`, fileData, (err) => {
+    if (err) {
+      console.error("error: ", err)
+    }
+  })
 })
