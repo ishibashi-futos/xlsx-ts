@@ -29,8 +29,12 @@ if (!isExistsFile(fileName)) {
   
   let data = [
     ["javaType", "varName", "japaneseName", "description", "memberof"],
-    ["int", "user_id", "ユーザId", "ユーザの識別子", "-"],
-    ["String", "user_Name", "ユーザ名", "ユーザ名", "-"]
+    ["int", "user_id", "ユーザId", "ユーザの識別子", "UserData"],
+    ["String", "user_Name", "ユーザ名", "ユーザ名", "UserData"],
+    ["CalendarDate", "calendar_date_time_T", "カレンダー日時", "カレンダー日時クラス", "UserData"],
+    ["int", "year", "年", "年", "CalendarDate"],
+    ["int", "month", "月", "月", "CalendarDate"],
+    ["int", "day", "日", "日", "CalendarDate"],
   ]
   
   let ws = XLSX.utils.aoa_to_sheet(data);
@@ -47,7 +51,6 @@ const sheet1 = book.Sheets[sheetNames[0]];
 /** セル範囲の取得 */
 const range = sheet1["!ref"] as string
 const decodeRange = utils.decode_range(range)
-console.log(decodeRange)
 
 /** スネークケースをキャメルケースにする */
 const Snake2Camel = (str: string): string => str.replace(/_./g, (s) => s.charAt(1).toUpperCase())
@@ -61,6 +64,7 @@ type DataType = {
   memberof: string
 }
 let arr: DataType[] = []
+let classData = new Map<string, DataType[]>();
 for (let rowIndex = decodeRange.s.r; rowIndex <= decodeRange.e.r; rowIndex++) {
   let data: DataType = {
     javaType: "",
@@ -95,8 +99,34 @@ for (let rowIndex = decodeRange.s.r; rowIndex <= decodeRange.e.r; rowIndex++) {
     }
   }
   arr.push(data)
+  if (!classData.has(data.memberof)) {
+    let dataTypes: DataType[] = [];
+    dataTypes.push(data)
+    classData.set(data.memberof, dataTypes)
+  } else {
+    let dataTypes = classData.get(data.memberof)
+    dataTypes!.push(data);
+  }
 }
 
-arr.forEach((data: DataType) => {
-  console.log(data)
+classData.forEach((v: DataType[], key: string) => {
+  if (key == "") return
+  const members = v.map((v) => {
+    return `\tpublic final ${v.javaType} ${v.varName};`
+  }).join("\n")
+
+  const allArgs = v.map((v) => `${v.javaType} ${v.varName}`).join(" ,")
+  const set = v.map((v) => {
+    return `\tthis.${v.varName} = ${v.varName}`
+  }).join("\n")
+
+  console.log(`
+public class ${key} {
+${members}
+
+\tpublic ${key} (${allArgs}) {
+${set}
+\t}
+}
+  `)
 })
